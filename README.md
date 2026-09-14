@@ -19,6 +19,8 @@ A production-ready, feature-rich duplicate file finder with comprehensive safety
 - **Smart Backups**: Optional backup creation before deletion
 
 ### 🚀 **Performance**
+- **Size pre-filter**: Only files that share a size with another file are
+  hashed - files of a unique size cannot be duplicates
 - **Multi-threaded**: Parallel hash calculation for faster processing
 - **Smart Caching**: SQLite-based cache for faster re-scans
 - **Memory Monitoring**: Automatic thread adjustment based on available memory
@@ -51,9 +53,8 @@ A production-ready, feature-rich duplicate file finder with comprehensive safety
 curl -O https://raw.githubusercontent.com/morroware/DupeFinder/main/dupefinder.sh
 chmod +x dupefinder.sh
 
-# Basic dependencies (usually pre-installed)
-sudo apt update
-sudo apt install sqlite3 lsof
+# Everything required is part of a standard install (bash, GNU coreutils,
+# GNU findutils). Nothing extra is needed for a basic scan.
 ```
 
 ### Clone Repository
@@ -66,20 +67,25 @@ chmod +x dupefinder.sh
 
 ### Full Feature Installation
 ```bash
-# Install all optional dependencies for complete functionality
-sudo apt install sqlite3 lsof bc trash-cli jq ssdeep mailutils gawk
+# Optional extras, each tied to one flag
+sudo apt install sqlite3 lsof trash-cli ssdeep mailutils
 ```
 
 ### Dependencies
 | Component | Package | Required | Purpose |
 |-----------|---------|----------|---------|
-| Core tools | `coreutils findutils` | ✅ Yes | Basic file operations |
-| SQLite | `sqlite3` | ⭐ Recommended | File caching |
-| Process monitor | `lsof` | ⭐ Recommended | Safety checks |
-| Trash support | `trash-cli` | ❌ Optional | Safe deletion |
-| JSON processing | `jq` | ❌ Optional | Enhanced reports |
-| Fuzzy matching | `ssdeep` | ❌ Optional | Similar file detection |
-| Email reports | `mailutils` | ❌ Optional | Report delivery |
+| Bash 4+ | `bash` | ✅ Yes | The script itself |
+| GNU coreutils | `coreutils` | ✅ Yes | `sort`/`uniq`/`cut -z`, hashing |
+| GNU findutils | `findutils` | ✅ Yes | `find -printf` |
+| SQLite | `sqlite3` | ❌ Optional | `--cache` |
+| Process monitor | `lsof` | ❌ Optional | `--enable-lsof` open-file checks |
+| Trash support | `trash-cli` | ❌ Optional | `--trash` |
+| Fuzzy matching | `ssdeep` | ❌ Optional | `--fuzzy` |
+| Email reports | `mailutils` | ❌ Optional | `--email` |
+
+The zero-terminated `sort`/`uniq`/`cut` options need coreutils 8.25 or newer
+(Debian 9+, Ubuntu 16.04+). The script checks for them at startup and says so
+if they are missing.
 
 ## 🚀 Quick Start
 
@@ -331,12 +337,18 @@ done
 ./dupefinder.sh \
   --path /data/shared \
   --min-size 10M \
+  --delete \
   --smart-delete \
+  --yes \
   --cache \
   --csv "/reports/weekly_$(date +%Y%m%d).csv" \
   --email admin@company.com \
   --log /var/log/weekly_cleanup.log \
   --quiet
+
+# --smart-delete only picks which copy to keep; --delete is what removes the
+# others. Without a terminal to confirm on, --yes is required or the run
+# reports what it found and changes nothing.
 
 # Add to crontab: 0 2 * * 0 /path/to/weekly_cleanup.sh
 ```
